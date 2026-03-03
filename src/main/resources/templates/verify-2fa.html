@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::section})}">
+
+<body>
+    <section>
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-5">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white text-center py-3">
+                        <h4 class="mb-0"><i class="fa-solid fa-shield-halved me-2"></i>Two-Factor Authentication</h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <p class="text-center text-muted">A verification code has been sent to your simulated
+                            authenticator device.</p>
+
+                        <div th:if="${error}" class="alert alert-danger" role="alert">
+                            <span th:text="${error}"></span>
+                        </div>
+
+                        <form th:action="@{/verify-2fa}" method="post">
+                            <div class="mb-4 text-center">
+                                <label class="form-label d-block mb-3">Enter 6-digit Verification Code</label>
+                                <input type="text" name="code"
+                                    class="form-control form-control-lg text-center letter-spacing-lg" required
+                                    maxlength="6" pattern="\d{6}" placeholder="000000" autofocus>
+                                <small class="text-muted d-block mt-2">Check your logs for the code (Simulation
+                                    Mode)</small>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg shadow-sm">Verify & Login</button>
+                            </div>
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <a href="/login" class="text-muted small"><i class="fa-solid fa-arrow-left me-1"></i>Back to
+                                Login</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 bg-light border rounded shadow-sm">
+                    <h6 class="border-bottom pb-2 mb-2"><i
+                            class="fa-solid fa-circle-info me-2 text-primary"></i>Simulation Hint</h6>
+                    <p class="small mb-0 text-muted">In this project, 2FA is simulated. Use the code
+                        <strong>123456</strong> for testing, or check the application console logs for the dynamically
+                        generated code.</p>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .letter-spacing-lg {
+                letter-spacing: 0.5rem;
+                font-size: 2rem;
+                font-weight: bold;
+            }
+        </style>
+    </section>
+</body>
+
+</html>

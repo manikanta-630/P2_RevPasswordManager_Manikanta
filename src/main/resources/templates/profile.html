@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::section})}">
+
+<body>
+    <section>
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <h3 class="mb-4"><i class="fa-solid fa-user-gear me-2 text-primary"></i>Profile Settings</h3>
+
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fa-solid fa-circle-check me-2"></i><span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fa-solid fa-circle-exclamation me-2"></i><span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <!-- Profile Info Card -->
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-light py-3">
+                        <h5 class="mb-0">Personal Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/profile/update}" method="post" th:object="${profileDto}">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Full Name</label>
+                                    <input type="text" name="name" class="form-control" th:value="*{name}"
+                                        placeholder="John Doe">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Username</label>
+                                    <input type="text" class="form-control" th:value="${session.loggedInUser.username}"
+                                        disabled readonly title="Username cannot be changed">
+                                </div>
+                            </div>
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Email Address</label>
+                                    <input type="email" name="email" class="form-control" th:value="*{email}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone Number</label>
+                                    <input type="text" name="phoneNumber" class="form-control"
+                                        th:value="*{phoneNumber}">
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Security Settings Card -->
+                <div class="card shadow border-danger">
+                    <div class="card-header bg-danger text-white py-3">
+                        <h5 class="mb-0"><i class="fa-solid fa-shield-halved me-2"></i>Security Settings</h5>
+                    </div>
+                    <div class="card-body">
+
+                        <h6 class="mb-3">Change Master Password</h6>
+                        <form th:action="@{/profile/change-password}" method="post" th:object="${passwordDto}">
+                            <div class="mb-3">
+                                <label class="form-label">Current Master Password</label>
+                                <input type="password" name="currentPassword" class="form-control" required>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">New Master Password</label>
+                                    <input type="password" name="newPassword" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Confirm New Password</label>
+                                    <input type="password" name="confirmNewPassword" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-outline-danger">Change Password</button>
+                            </div>
+                        </form>
+
+                        <hr class="my-4">
+
+                        <h6 class="mb-3">Two-Factor Authentication (2FA)</h6>
+                        <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded">
+                            <div>
+                                <strong>Status: </strong>
+                                <span th:if="${session.loggedInUser.twoFactorEnabled}"
+                                    class="badge bg-success fs-6">Enabled</span>
+                                <span th:if="${!session.loggedInUser.twoFactorEnabled}"
+                                    class="badge bg-secondary fs-6">Disabled</span>
+                            </div>
+                            <form th:action="@{/profile/toggle-2fa}" method="post" class="mb-0">
+                                <button type="submit" class="btn btn-sm btn-dark"
+                                    th:text="${session.loggedInUser.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}">
+                                    Manage 2FA
+                                </button>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+</body>
+
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::section})}">
+
+<body>
+    <section>
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white text-center py-3">
+                        <h4 class="mb-0"><i class="fa-solid fa-user-plus me-2"></i>Register for RevPassword</h4>
+                    </div>
+                    <div class="card-body p-4">
+
+                        <div th:if="${error}" class="alert alert-danger" role="alert">
+                            <span th:text="${error}"></span>
+                        </div>
+
+                        <form th:action="@{/register}" method="post">
+                            <div class="mb-3">
+                                <label class="form-label">Username</label>
+                                <input type="text" name="username" class="form-control" required
+                                    placeholder="Choose a username">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" name="email" class="form-control" required
+                                    placeholder="Enter your email">
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col">
+                                    <label class="form-label">Master Password</label>
+                                    <input type="password" name="masterPassword" class="form-control" required>
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">Confirm Password</label>
+                                    <input type="password" name="confirmPassword" class="form-control" required>
+                                </div>
+                            </div>
+
+                            <hr>
+                            <h6 class="mb-3">Security Questions (Choose 3)</h6>
+
+                            <div th:each="i : ${#numbers.sequence(0, 2)}" class="mb-3 bg-light p-3 rounded border">
+                                <label class="form-label fw-bold">Question <span th:text="${i + 1}"></span></label>
+                                <select name="securityQuestionIds" class="form-select mb-2" required>
+                                    <option value="" disabled selected>Select a question...</option>
+                                    <option th:each="q : ${questions}" th:value="${q.id}" th:text="${q.questionText}">
+                                    </option>
+                                </select>
+                                <input type="text" name="securityAnswers" class="form-control" required
+                                    placeholder="Your answer">
+                            </div>
+
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-success btn-lg">Create Account</button>
+                            </div>
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <p>Already have an account? <a href="/login">Login here</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+
+</html>
