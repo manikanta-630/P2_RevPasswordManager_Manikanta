@@ -30,8 +30,7 @@ public class PasswordEntry {
     private User user;
 
     @Column(nullable = false)
-    private String accountName; // e.g., Facebook, Bank of America
-
+    private String accountName;
     private String websiteUrl;
 
     private String usernameEmail;
@@ -39,13 +38,15 @@ public class PasswordEntry {
     @Column(nullable = false, length = 1000)
     private String encryptedPassword;
 
-    private String category; // e.g., Social Media, Banking, Email
+    private String category;
 
     @Column(length = 2000)
     private String notes;
 
     @Column(nullable = false)
     private boolean isFavorite;
+
+    private String strength; // "Weak", "Medium", "Strong", "Very Strong"
 
     @CreationTimestamp
     @Column(updatable = false)

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        .diagram-container {
+            margin-bottom: 50px;
+            border: 1px solid #ccc;
+            padding: 20px;
+            width: fit-content;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="diagram-container" id="system_diagram">
+        <h2>System Diagram</h2>
+        <div class="mermaid">
+            graph TD
+            User((End User))
+            Browser[Web Browser / Frontend]
+
+            subgraph "Spring Boot Server"
+            ControllerLayer[Controller Layer - MVC/REST]
+            ServiceLayer[Service Layer - Business Logic]
+            DataLayer[Data Access Layer - Spring Data JPA]
+            end
+
+            Database[(Oracle Database)]
+
+            User -- "Interacts with" --> Browser
+            Browser -- "HTTP Requests" --> ControllerLayer
+            ControllerLayer -- "DTOs" --> ServiceLayer
+            ServiceLayer -- "Entities" --> DataLayer
+            DataLayer -- "SQL / JDBC" --> Database
+        </div>
+    </div>
+
+    <div class="diagram-container" id="er_diagram">
+        <h2>ER Diagram</h2>
+        <div class="mermaid">
+            erDiagram
+            USERS ||--o{ PASSWORD_ENTRIES : owns
+            USERS ||--o{ USER_SECURITY_ANSWERS : provides
+            SECURITY_QUESTIONS ||--o{ USER_SECURITY_ANSWERS : answer_for
+            OTP_VERIFICATIONS }o--|| USERS : verifies_for
+
+            USERS {
+            long id PK
+            string username "unique"
+            string email "unique"
+            string masterPasswordHash
+            string name
+            string phoneNumber
+            boolean twoFactorEnabled
+            string twoFactorSecret
+            datetime createdAt
+            datetime updatedAt
+            }
+
+            PASSWORD_ENTRIES {
+            long id PK
+            long user_id FK
+            string accountName
+            string websiteUrl
+            string usernameEmail
+            string encryptedPassword
+            string category
+            string notes
+            boolean isFavorite
+            string strength
+            datetime createdAt
+            datetime updatedAt
+            }
+
+            SECURITY_QUESTIONS {
+            long id PK
+            string questionText "unique"
+            }
+
+            USER_SECURITY_ANSWERS {
+            long id PK
+            long user_id FK
+            long security_question_id FK
+            string answerHash
+            datetime createdAt
+            datetime updatedAt
+            }
+
+            OTP_VERIFICATIONS {
+            long id PK
+            string email
+            string otp
+            datetime expiryTime
+            }
+        </div>
+    </div>
+
+    <div class="diagram-container" id="domain_entities">
+        <h2>Domain Entities Class Diagram</h2>
+        <div class="mermaid">
+            classDiagram
+            class User {
+            +Long id
+            +String username
+            +String email
+            +String masterPasswordHash
+            +String name
+            +String phoneNumber
+            +boolean twoFactorEnabled
+            +String twoFactorSecret
+            }
+
+            class PasswordEntry {
+            +Long id
+            +User user
+            +String accountName
+            +String encryptedPassword
+            +String strength
+            }
+
+            User "1" -- "0..*" PasswordEntry : owns
+        </div>
+    </div>
+
+    <div class="diagram-container" id="service_layer">
+        <h2>Service Layer Class Diagram</h2>
+        <div class="mermaid">
+            classDiagram
+            class IUserService {
+            <<interface>>
+                +registerUser(UserRegistrationDto) User
+                +loginUser(LoginDto) User
+                +verifyTwoFactorCode(User, String) boolean
+                }
+
+                class IPasswordVaultService {
+                <<interface>>
+                    +addPassword(User, PasswordEntryDto) PasswordEntry
+                    +getAllPasswords(User) List_PasswordEntry
+                    }
+
+                    IUserService <|.. UserServiceImpl IPasswordVaultService <|.. PasswordVaultServiceImpl </div>
+        </div>
+
+        <div class="diagram-container" id="use_case">
+            <h2>Use Case Diagram</h2>
+            <div class="mermaid">
+                graph TD
+                subgraph "RevPassword Manager"
+                UC1[Register Account]
+                UC2[Login / Authenticate]
+                UC3[2FA Verification]
+                UC4[Manage Vault Entries]
+                UC5[Generate Strong Password]
+                end
+
+                U((User))
+                U --> UC1
+                U --> UC2
+                UC2 --> UC3
+                U --> UC4
+                U --> UC5
+            </div>
+        </div>
+
+        <script>
+            mermaid.initialize({ startOnLoad: true });
+        </script>
+</body>
+
+</html>

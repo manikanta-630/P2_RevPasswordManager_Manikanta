@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::section})}">
+
+<body>
+    <section>
+        <div class="row">
+            <!-- Generator Settings Column -->
+            <div class="col-md-5 mb-4">
+                <div class="card shadow h-100">
+                    <div class="card-header bg-primary text-white py-3">
+                        <h5 class="mb-0"><i class="fa-solid fa-gear me-2"></i>Generator Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/generator/generate}" method="post" th:object="${genConfig}">
+
+                            <div th:if="${error}" class="alert alert-danger" role="alert">
+                                <span th:text="${error}"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold d-flex justify-content-between">
+                                    <span>Password Length</span>
+                                    <span id="lengthDisplay" th:text="*{length}">16</span>
+                                </label>
+                                <input type="range" class="form-range" name="length" th:value="*{length}" min="1"
+                                    max="12" id="lengthSlider"
+                                    oninput="document.getElementById('lengthDisplay').innerText = this.value">
+                            </div>
+
+                            <ul class="list-group mb-4">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Uppercase (A-Z)
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="includeUppercase"
+                                            role="switch" th:checked="*{includeUppercase}">
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Lowercase (a-z)
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="includeLowercase"
+                                            role="switch" th:checked="*{includeLowercase}">
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Numbers (0-9)
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="includeNumbers"
+                                            role="switch" th:checked="*{includeNumbers}">
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Special Characters (@#$%)
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="includeSpecialCharacters"
+                                            role="switch" th:checked="*{includeSpecialCharacters}">
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Exclude Similar (il1O0)
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="excludeSimilarCharacters"
+                                            role="switch" th:checked="*{excludeSimilarCharacters}">
+                                    </div>
+                                </li>
+                            </ul>
+
+                            <button type="submit" class="btn btn-primary w-100 btn-lg"><i
+                                    class="fa-solid fa-wand-magic-sparkles me-2"></i>Generate Password</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result & Save Column -->
+            <div class="col-md-7">
+
+                <div th:if="${generatedPassword}" class="card shadow mb-4 border-success">
+                    <div class="card-body text-center p-5">
+                        <h6 class="text-muted text-uppercase mb-3">Your Generated Password</h6>
+
+                        <div class="input-group input-group-lg mb-4">
+                            <input type="text" id="genPwdResult"
+                                class="form-control text-center font-monospace fw-bold bg-light fs-3 py-3"
+                                th:value="${generatedPassword}" readonly>
+                            <button class="btn btn-outline-success" type="button" onclick="copyGenPassword()"
+                                title="Copy to clipboard">
+                                <i class="fa-regular fa-copy"></i> Copy
+                            </button>
+                        </div>
+
+                        <div class="d-flex justify-content-center align-items-center gap-2">
+                            <span>Strength:</span>
+                            <span th:class="'badge fs-6 ' + 
+                            (${strength == 'Weak'} ? 'bg-danger' : 
+                            (${strength == 'Medium'} ? 'bg-warning text-dark' : 
+                            (${strength == 'Strong'} ? 'bg-info text-dark' : 'bg-success')))" th:text="${strength}">
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow" th:if="${generatedPassword} or ${newEntry.password == null}">
+                    <div class="card-header bg-light py-3">
+                        <h5 class="mb-0"><i class="fa-solid fa-floppy-disk me-2"></i>Save to Vault</h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/generator/save}" method="post" th:object="${newEntry}">
+
+                            <input type="hidden" name="password" th:value="${generatedPassword} ?: ''">
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Account / App Name</label>
+                                    <input type="text" name="accountName" class="form-control" required
+                                        placeholder="e.g. Gmail">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Category</label>
+                                    <select name="category" class="form-select">
+                                        <option value="Social Media">Social Media</option>
+                                        <option value="Email">Email</option>
+                                        <option value="Banking">Banking</option>
+                                        <option value="Shopping">Shopping</option>
+                                        <option value="Work">Work</option>
+                                        <option value="Other" selected>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Website URL</label>
+                                    <input type="url" name="websiteUrl" class="form-control" placeholder="https://...">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Username / Email</label>
+                                    <input type="text" name="usernameEmail" class="form-control"
+                                        placeholder="user@domain.com">
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label">Notes (Optional)</label>
+                                <textarea name="notes" class="form-control" rows="2"></textarea>
+                            </div>
+
+                            <!-- Show manual password entry if they didn't generate one -->
+                            <div class="mb-4" th:if="${generatedPassword == null}">
+                                <label class="form-label fw-bold">Password to encrypt and save</label>
+                                <input type="password" name="password" class="form-control border-primary" required>
+                            </div>
+
+                            <button type="submit" class="btn btn-success w-100"><i
+                                    class="fa-solid fa-lock mt-1 me-2"></i>Encrypt & Save to Vault</button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <script>
+            function copyGenPassword() {
+                var copyText = document.getElementById("genPwdResult");
+                if (copyText) {
+                    copyText.select();
+                    copyText.setSelectionRange(0, 99999);
+                    navigator.clipboard.writeText(copyText.value);
+
+                    let btn = event.currentTarget;
+                    let originalHtml = btn.innerHTML;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                    btn.classList.add('btn-success', 'text-white');
+                    btn.classList.remove('btn-outline-success');
+
+                    setTimeout(() => {
+                        btn.innerHTML = originalHtml;
+                        btn.classList.remove('btn-success', 'text-white');
+                        btn.classList.add('btn-outline-success');
+                    }, 2000);
+                }
+            }
+        </script>
+    </section>
+</body>
+
+</html>
