@@ -70,35 +70,85 @@
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label">New Master Password</label>
-                                    <input type="password" name="newPassword" class="form-control" required>
+                                    <input type="password" id="newMasterPassword" name="newPassword"
+                                        class="form-control" required>
+                                    <div id="passwordHelp" class="mt-2 small">
+                                        <div id="len" class="text-danger"><i class="fa-solid fa-circle-xmark me-1"></i>
+                                            8+ characters</div>
+                                        <div id="upper" class="text-danger"><i
+                                                class="fa-solid fa-circle-xmark me-1"></i> Uppercase</div>
+                                        <div id="lower" class="text-danger"><i
+                                                class="fa-solid fa-circle-xmark me-1"></i> Lowercase</div>
+                                        <div id="num" class="text-danger"><i class="fa-solid fa-circle-xmark me-1"></i>
+                                            Number</div>
+                                        <div id="spec" class="text-danger"><i class="fa-solid fa-circle-xmark me-1"></i>
+                                            Special char</div>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Confirm New Password</label>
-                                    <input type="password" name="confirmNewPassword" class="form-control" required>
+                                    <input type="password" id="confirmNewPassword" name="confirmNewPassword"
+                                        class="form-control" required>
+                                    <div id="match" class="mt-2 small text-danger d-none"><i
+                                            class="fa-solid fa-circle-exclamation me-1"></i> Passwords do not match
+                                    </div>
                                 </div>
                             </div>
+                            <div class="mb-4" th:if="${session.loggedInUser.twoFactorEnabled}">
+                                <label class="form-label text-primary fw-bold">
+                                    <i class="fa-solid fa-key me-2"></i>Two-Factor Authentication (OTP)
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" id="otpInput" th:field="*{otp}" class="form-control"
+                                        placeholder="Enter 6-digit code">
+                                    <button class="btn btn-primary" type="button" id="sendOtpBtn">Send OTP</button>
+                                    <button class="btn btn-success" type="button" id="verifyOtpBtn">Verify</button>
+                                </div>
+                                <div id="otpStatus" class="form-text mt-2 text-muted italic">Click <b>Send OTP</b> to
+                                    receive the code in your console.</div>
+                            </div>
                             <div class="text-end">
-                                <button type="submit" class="btn btn-outline-danger">Change Password</button>
+                                <button type="submit" id="changePassBtn" class="btn btn-outline-danger" disabled>Change
+                                    Password</button>
                             </div>
                         </form>
 
                         <hr class="my-4">
 
                         <h6 class="mb-3">Two-Factor Authentication (2FA)</h6>
-                        <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded">
-                            <div>
-                                <strong>Status: </strong>
-                                <span th:if="${session.loggedInUser.twoFactorEnabled}"
-                                    class="badge bg-success fs-6">Enabled</span>
-                                <span th:if="${!session.loggedInUser.twoFactorEnabled}"
-                                    class="badge bg-secondary fs-6">Disabled</span>
+                        <div class="bg-light p-4 rounded border">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h5 class="mb-1">Security Status</h5>
+                                    <span th:if="${session.loggedInUser.twoFactorEnabled}"
+                                        class="badge bg-success fs-6"><i class="fa-solid fa-shield-check me-1"></i>
+                                        Enabled</span>
+                                    <span th:if="${!session.loggedInUser.twoFactorEnabled}"
+                                        class="badge bg-secondary fs-6"><i class="fa-solid fa-shield-xmark me-1"></i>
+                                        Disabled</span>
+                                </div>
+                                <form th:action="@{/profile/toggle-2fa}" method="post" class="mb-0">
+                                    <button type="submit" class="btn btn-dark"
+                                        th:text="${session.loggedInUser.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}">
+                                        Manage 2FA
+                                    </button>
+                                </form>
                             </div>
-                            <form th:action="@{/profile/toggle-2fa}" method="post" class="mb-0">
-                                <button type="submit" class="btn btn-sm btn-dark"
-                                    th:text="${session.loggedInUser.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}">
-                                    Manage 2FA
-                                </button>
-                            </form>
+
+                            <div th:if="${!session.loggedInUser.twoFactorEnabled}" class="mt-3 small text-muted">
+                                <p class="mb-2"><i class="fa-solid fa-info-circle me-1 text-primary"></i> <strong>What
+                                        is 2FA?</strong> Two-factor authentication adds an extra layer of security to
+                                    your account. In addition to your master password, you'll need to enter a 6-digit
+                                    code during login.</p>
+                                <p class="mb-0"><i class="fa-solid fa-key me-1 text-warning"></i> Once enabled, codes
+                                    will be generated automatically for your account.</p>
+                            </div>
+
+                            <div th:if="${session.loggedInUser.twoFactorEnabled}"
+                                class="mt-3 p-3 bg-white rounded border border-success">
+                                <p class="mb-0 text-success fw-bold"><i class="fa-solid fa-check-double me-1"></i> Your
+                                    account is securely protected with 2FA.</p>
+                            </div>
                         </div>
 
                     </div>
@@ -106,6 +156,101 @@
 
             </div>
         </div>
+
+        <script th:inline="javascript">
+            // Password Validation Logic
+            const password = document.getElementById('newMasterPassword');
+            const confirm = document.getElementById('confirmNewPassword');
+            const sendOtpBtn = document.getElementById('sendOtpBtn');
+            const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+            const otpInput = document.getElementById('otpInput');
+            const otpStatus = document.getElementById('otpStatus');
+            const changePassBtn = document.getElementById('changePassBtn');
+            const matchEl = document.getElementById('match');
+
+            const requirements = {
+                len: { re: /.{8,}/, el: document.getElementById('len') },
+                upper: { re: /[A-Z]/, el: document.getElementById('upper') },
+                lower: { re: /[a-z]/, el: document.getElementById('lower') },
+                num: { re: /[0-9]/, el: document.getElementById('num') },
+                spec: { re: /[^A-Za-z0-9]/, el: document.getElementById('spec') }
+            };
+
+            const twoFactorEnabled = [[${ session.loggedInUser.twoFactorEnabled }]];
+            let otpVerified = !twoFactorEnabled;
+
+            document.addEventListener('DOMContentLoaded', validate);
+
+            if (sendOtpBtn) {
+                sendOtpBtn.addEventListener('click', () => {
+                    fetch('/profile/send-otp', { method: 'POST' })
+                        .then(r => r.text())
+                        .then(msg => {
+                            otpStatus.innerText = msg;
+                            otpStatus.className = 'form-text mt-1 text-primary';
+                        });
+                });
+            }
+
+            if (verifyOtpBtn) {
+                verifyOtpBtn.addEventListener('click', () => {
+                    const otp = otpInput.value;
+                    if (!otp) return;
+                    fetch('/profile/verify-otp?otp=' + otp, { method: 'POST' })
+                        .then(r => r.json())
+                        .then(isValid => {
+                            otpVerified = isValid;
+                            if (isValid) {
+                                otpStatus.innerText = '✅ OTP Verified!';
+                                otpStatus.className = 'form-text mt-1 text-success fw-bold';
+                                otpInput.classList.remove('border-primary', 'border-danger');
+                                otpInput.classList.add('border-success');
+                            } else {
+                                otpStatus.innerText = '❌ Invalid OTP code.';
+                                otpStatus.className = 'form-text mt-1 text-danger fw-bold';
+                                otpInput.classList.add('border-danger');
+                            }
+                            validate();
+                        });
+                });
+            }
+
+            function validate() {
+                let allValid = true;
+                const val = password.value;
+
+                for (const key in requirements) {
+                    const req = requirements[key];
+                    const isValid = req.re.test(val);
+                    if (isValid) {
+                        req.el.classList.remove('text-danger');
+                        req.el.classList.add('text-success');
+                        req.el.querySelector('i').classList.remove('fa-circle-xmark');
+                        req.el.querySelector('i').classList.add('fa-circle-check');
+                    } else {
+                        req.el.classList.remove('text-success');
+                        req.el.classList.add('text-danger');
+                        req.el.querySelector('i').classList.remove('fa-circle-check');
+                        req.el.querySelector('i').classList.add('fa-circle-xmark');
+                        allValid = false;
+                    }
+                }
+
+                const passwordsMatch = val === confirm.value && val !== '';
+                if (confirm.value !== '') {
+                    matchEl.classList.toggle('d-none', passwordsMatch);
+                } else {
+                    matchEl.classList.add('d-none');
+                }
+
+                changePassBtn.disabled = !(allValid && passwordsMatch && otpVerified);
+            }
+
+            if (password && confirm) {
+                password.addEventListener('input', validate);
+                confirm.addEventListener('input', validate);
+            }
+        </script>
     </section>
 </body>
 

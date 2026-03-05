@@ -29,11 +29,29 @@
                             <div class="row mb-3">
                                 <div class="col">
                                     <label class="form-label">Master Password</label>
-                                    <input type="password" name="masterPassword" class="form-control" required>
+                                    <input type="password" id="masterPassword" name="masterPassword"
+                                        class="form-control" required>
+                                    <div id="passwordHelp" class="mt-2 small">
+                                        <div id="len" class="text-danger"><i class="fa-solid fa-circle-xmark me-1"></i>
+                                            At least 8 characters</div>
+                                        <div id="upper" class="text-danger"><i
+                                                class="fa-solid fa-circle-xmark me-1"></i> At least one uppercase letter
+                                        </div>
+                                        <div id="lower" class="text-danger"><i
+                                                class="fa-solid fa-circle-xmark me-1"></i> At least one lowercase letter
+                                        </div>
+                                        <div id="num" class="text-danger"><i class="fa-solid fa-circle-xmark me-1"></i>
+                                            At least one number</div>
+                                        <div id="spec" class="text-danger"><i class="fa-solid fa-circle-xmark me-1"></i>
+                                            At least one special character</div>
+                                    </div>
                                 </div>
                                 <div class="col">
                                     <label class="form-label">Confirm Password</label>
-                                    <input type="password" name="confirmPassword" class="form-control" required>
+                                    <input type="password" id="confirmPassword" name="confirmPassword"
+                                        class="form-control" required>
+                                    <div id="match" class="mt-2 small text-danger d-none"><i
+                                            class="fa-solid fa-circle-exmark me-1"></i> Passwords do not match</div>
                                 </div>
                             </div>
 
@@ -52,7 +70,8 @@
                             </div>
 
                             <div class="d-grid gap-2 mt-4">
-                                <button type="submit" class="btn btn-success btn-lg">Create Account</button>
+                                <button type="submit" id="submitBtn" class="btn btn-success btn-lg" disabled>Create
+                                    Account</button>
                             </div>
                         </form>
 
@@ -63,6 +82,84 @@
                 </div>
             </div>
         </div>
+
+        <script>
+            const password = document.getElementById('masterPassword');
+            const confirm = document.getElementById('confirmPassword');
+            const submitBtn = document.getElementById('submitBtn');
+
+            const requirements = {
+                len: { re: /.{8,}/, el: document.getElementById('len') },
+                upper: { re: /[A-Z]/, el: document.getElementById('upper') },
+                lower: { re: /[a-z]/, el: document.getElementById('lower') },
+                num: { re: /[0-9]/, el: document.getElementById('num') },
+                spec: { re: /[^A-Za-z0-9]/, el: document.getElementById('spec') }
+            };
+
+            const matchEl = document.getElementById('match');
+
+            function validate() {
+                let allValid = true;
+                const val = password.value;
+
+                for (const key in requirements) {
+                    const req = requirements[key];
+                    const isValid = req.re.test(val);
+                    if (isValid) {
+                        req.el.classList.remove('text-danger');
+                        req.el.classList.add('text-success');
+                        req.el.querySelector('i').classList.remove('fa-circle-xmark');
+                        req.el.querySelector('i').classList.add('fa-circle-check');
+                    } else {
+                        req.el.classList.remove('text-success');
+                        req.el.classList.add('text-danger');
+                        req.el.querySelector('i').classList.remove('fa-circle-check');
+                        req.el.querySelector('i').classList.add('fa-circle-xmark');
+                        allValid = false;
+                    }
+                }
+
+                const passwordsMatch = val === confirm.value && val !== '';
+                if (confirm.value !== '') {
+                    matchEl.classList.toggle('d-none', passwordsMatch);
+                } else {
+                    matchEl.classList.add('d-none');
+                }
+
+                submitBtn.disabled = !(allValid && passwordsMatch);
+            }
+
+            password.addEventListener('input', validate);
+            confirm.addEventListener('input', validate);
+
+            // Security Questions filtering logic
+            const questionSelects = document.querySelectorAll('select[name="securityQuestionIds"]');
+
+            function filterQuestions() {
+                const selectedValues = Array.from(questionSelects)
+                    .map(select => select.value)
+                    .filter(value => value !== "");
+
+                questionSelects.forEach(select => {
+                    const currentValue = select.value;
+                    const options = select.querySelectorAll('option:not([disabled])');
+
+                    options.forEach(option => {
+                        if (selectedValues.includes(option.value) && option.value !== currentValue) {
+                            option.classList.add('d-none');
+                            option.disabled = true;
+                        } else {
+                            option.classList.remove('d-none');
+                            option.disabled = false;
+                        }
+                    });
+                });
+            }
+
+            questionSelects.forEach(select => {
+                select.addEventListener('change', filterQuestions);
+            });
+        </script>
     </section>
 </body>
 

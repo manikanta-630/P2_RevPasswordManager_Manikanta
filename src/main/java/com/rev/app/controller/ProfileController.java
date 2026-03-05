@@ -8,10 +8,7 @@ import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -35,12 +32,38 @@ public class ProfileController {
 
         model.addAttribute("profileDto", profileDto);
         model.addAttribute("passwordDto", new PasswordChangeDto());
+
+        if (user.isTwoFactorEnabled()) {
+            userService.logCurrentTwoFactorCode(user);
+        }
+
         return "profile";
     }
 
+    @PostMapping("/send-otp")
+    @ResponseBody
+    public String sendOtp(HttpSession session) {
+        User user = (User) session.getAttribute("loggedInUser");
+        if (user != null && user.isTwoFactorEnabled()) {
+            userService.logCurrentTwoFactorCode(user);
+            return "OTP sent successfully (Check console)";
+        }
+        return "2FA not enabled";
+    }
+
+    @PostMapping("/verify-otp")
+    @ResponseBody
+    public boolean verifyOtp(@RequestParam String otp, HttpSession session) {
+        User user = (User) session.getAttribute("loggedInUser");
+        if (user != null && user.isTwoFactorEnabled()) {
+            return userService.verifyTwoFactorCode(user, otp);
+        }
+        return true; // Not required if 2FA is off
+    }
+
     @PostMapping("/update")
-    public String updateProfile(@ModelAttribute("profileDto") UserProfileUpdateDto profileDto, 
-                                HttpSession session, RedirectAttributes redirectAttributes) {
+    public String updateProfile(@ModelAttribute("profileDto") UserProfileUpdateDto profileDto,
+            HttpSession session, RedirectAttributes redirectAttributes) {
         User user = (User) session.getAttribute("loggedInUser");
         try {
             User updatedUser = userService.updateProfile(user, profileDto);
@@ -53,8 +76,8 @@ public class ProfileController {
     }
 
     @PostMapping("/change-password")
-    public String changePassword(@ModelAttribute("passwordDto") PasswordChangeDto passwordDto, 
-                                 HttpSession session, RedirectAttributes redirectAttributes) {
+    public String changePassword(@ModelAttribute("passwordDto") PasswordChangeDto passwordDto,
+            HttpSession session, RedirectAttributes redirectAttributes) {
         User user = (User) session.getAttribute("loggedInUser");
         try {
             userService.changeMasterPassword(user, passwordDto);
@@ -62,6 +85,23 @@ public class ProfileController {
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
+        return "redirect:/profile";
+    }
+
+    @PostMapping("/toggle-2fa")
+    public String toggleTwoFactor(HttpSession session, RedirectAttributes redirectAttributes) {
+        User user = (User) session.getAttribute("loggedInUser");
+        if (user == null)
+            return "redirect:/login";
+
+        boolean newState = !user.isTwoFactorEnabled();
+        userService.setTwoFactorEnabled(user, newState);
+
+        // Update user in session
+        session.setAttribute("loggedInUser", user);
+
+        String msg = newState ? "Two-Factor Authentication enabled!" : "Two-Factor Authentication disabled.";
+        redirectAttributes.addFlashAttribute("successMessage", msg);
         return "redirect:/profile";
     }
 }

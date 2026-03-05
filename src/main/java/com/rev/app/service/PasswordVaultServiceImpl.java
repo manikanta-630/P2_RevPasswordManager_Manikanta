@@ -21,15 +21,18 @@ public class PasswordVaultServiceImpl implements IPasswordVaultService {
 
     private final IPasswordEntryRepository passwordEntryRepository;
     private final PasswordEntryMapper passwordEntryMapper;
-    
-    // In a real app, this should be an environment variable. Using a static key for P2 simplicity.
-    private static final String ENCRYPTION_KEY = "RevatureSecureP2"; 
+    private final IPasswordGeneratorService generatorService;
+
+    // In a real app, this should be an environment variable. Using a static key for
+    // P2 simplicity.
+    private static final String ENCRYPTION_KEY = "RevatureSecureP2";
 
     @Transactional
     public PasswordEntry addPassword(User user, PasswordEntryDto dto) {
         PasswordEntry entry = PasswordEntry.builder()
                 .user(user)
                 .encryptedPassword(encrypt(dto.getPassword()))
+                .strength(generatorService.calculatePasswordStrength(dto.getPassword()))
                 .isFavorite(false)
                 .build();
         passwordEntryMapper.updateEntityFromDto(dto, entry);
@@ -52,21 +55,22 @@ public class PasswordVaultServiceImpl implements IPasswordVaultService {
     }
 
     public List<PasswordEntry> searchPasswords(User user, String query) {
-        return passwordEntryRepository.findByUserAndAccountNameContainingIgnoreCaseOrWebsiteUrlContainingIgnoreCaseOrUsernameEmailContainingIgnoreCase(
-                user, query, query, query
-        );
+        return passwordEntryRepository
+                .findByUserAndAccountNameContainingIgnoreCaseOrWebsiteUrlContainingIgnoreCaseOrUsernameEmailContainingIgnoreCase(
+                        user, query, query, query);
     }
 
     @Transactional
     public PasswordEntry updatePassword(Long id, User user, PasswordEntryDto dto) {
         PasswordEntry entry = passwordEntryRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new IllegalArgumentException("Password entry not found"));
-                
+
         passwordEntryMapper.updateEntityFromDto(dto, entry);
         if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
             entry.setEncryptedPassword(encrypt(dto.getPassword()));
+            entry.setStrength(generatorService.calculatePasswordStrength(dto.getPassword()));
         }
-        
+
         return passwordEntryRepository.save(entry);
     }
 
@@ -84,7 +88,7 @@ public class PasswordVaultServiceImpl implements IPasswordVaultService {
         entry.setFavorite(!entry.isFavorite());
         return passwordEntryRepository.save(entry);
     }
-    
+
     public String decryptPassword(String encryptedPassword) {
         return decrypt(encryptedPassword);
     }

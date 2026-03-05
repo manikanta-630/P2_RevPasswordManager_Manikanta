@@ -12,55 +12,52 @@ public class PasswordGeneratorServiceImpl implements IPasswordGeneratorService {
     private static final String LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
     private static final String NUMBERS = "0123456789";
     private static final String SPECIAL = "!@#$%^&*()_+-=[]{}|;:,.<>?/";
-    
+
     private static final String SIMILAR_CHARS = "Il1O0";
 
     private final SecureRandom random = new SecureRandom();
 
     public String generatePassword(PasswordGeneratorDto config) {
-        if (config.getLength() < 8 || config.getLength() > 64) {
-            throw new IllegalArgumentException("Password length must be between 8 and 64 characters");
+        if (config.getLength() < 1 || config.getLength() > 12) {
+            throw new IllegalArgumentException("Password length must be between 1 and 12 characters");
         }
-        
-        if (!config.isIncludeUppercase() && !config.isIncludeLowercase() && 
-            !config.isIncludeNumbers() && !config.isIncludeSpecialCharacters()) {
+
+        if (!config.isIncludeUppercase() && !config.isIncludeLowercase() &&
+                !config.isIncludeNumbers() && !config.isIncludeSpecialCharacters()) {
             throw new IllegalArgumentException("At least one character type must be selected");
         }
 
         String uppercasePool = config.isExcludeSimilarCharacters() ? removeSimilar(UPPERCASE) : UPPERCASE;
         String lowercasePool = config.isExcludeSimilarCharacters() ? removeSimilar(LOWERCASE) : LOWERCASE;
         String numbersPool = config.isExcludeSimilarCharacters() ? removeSimilar(NUMBERS) : NUMBERS;
-        String specialPool = SPECIAL; // No standard similar chars in specials usually
+        String specialPool = SPECIAL;
 
         StringBuilder validChars = new StringBuilder();
         StringBuilder generatedPassword = new StringBuilder();
 
-        // Ensure at least one from each selected category to guarantee inclusion
-        if (config.isIncludeUppercase()) {
+        if (config.isIncludeUppercase() && generatedPassword.length() < config.getLength()) {
             validChars.append(uppercasePool);
             generatedPassword.append(uppercasePool.charAt(random.nextInt(uppercasePool.length())));
         }
-        if (config.isIncludeLowercase()) {
+        if (config.isIncludeLowercase() && generatedPassword.length() < config.getLength()) {
             validChars.append(lowercasePool);
             generatedPassword.append(lowercasePool.charAt(random.nextInt(lowercasePool.length())));
         }
-        if (config.isIncludeNumbers()) {
+        if (config.isIncludeNumbers() && generatedPassword.length() < config.getLength()) {
             validChars.append(numbersPool);
             generatedPassword.append(numbersPool.charAt(random.nextInt(numbersPool.length())));
         }
-        if (config.isIncludeSpecialCharacters()) {
+        if (config.isIncludeSpecialCharacters() && generatedPassword.length() < config.getLength()) {
             validChars.append(specialPool);
             generatedPassword.append(specialPool.charAt(random.nextInt(specialPool.length())));
         }
 
         String validCharsStr = validChars.toString();
 
-        // Fill the rest of the password
         for (int i = generatedPassword.length(); i < config.getLength(); i++) {
             generatedPassword.append(validCharsStr.charAt(random.nextInt(validCharsStr.length())));
         }
 
-        // Shuffle the characters so the guaranteed ones aren't always at the start
         return shuffleString(generatedPassword.toString());
     }
 
@@ -84,24 +81,29 @@ public class PasswordGeneratorServiceImpl implements IPasswordGeneratorService {
         }
         return new String(characters);
     }
-    
+
     public String calculatePasswordStrength(String password) {
-        if (password == null || password.length() == 0) return "Weak";
-        
-        int score = 0;
-        
-        if (password.length() >= 8) score++;
-        if (password.length() >= 12) score++;
-        if (password.length() >= 16) score++;
-        
-        if (password.matches(".*[A-Z].*")) score++;
-        if (password.matches(".*[a-z].*")) score++;
-        if (password.matches(".*[0-9].*")) score++;
-        if (password.matches(".*[^A-Za-z0-9].*")) score++;
-        
-        if (score <= 3) return "Weak";
-        if (score <= 5) return "Medium";
-        if (score <= 6) return "Strong";
-        return "Very Strong";
+        if (password == null || password.isEmpty()) {
+            return "Weak";
+        }
+
+        int length = password.length();
+        boolean hasUpper = password.matches(".*[A-Z].*");
+        boolean hasLower = password.matches(".*[a-z].*");
+        boolean hasDigit = password.matches(".*[0-9].*");
+        boolean hasSpecial = password.matches(".*[^A-Za-z0-9].*");
+        boolean hasSimilar = password.matches(".*[Il1O0].*");
+
+        boolean allEnabled = hasUpper && hasLower && hasDigit && hasSpecial && !hasSimilar;
+
+        if (length <= 5) {
+            return "Weak";
+        } else if (length <= 7) {
+            return allEnabled ? "Medium" : "Weak";
+        } else if (length <= 9) {
+            return allEnabled ? "Strong" : "Weak";
+        } else {
+            return allEnabled ? "Very Strong" : "Strong";
+        }
     }
 }

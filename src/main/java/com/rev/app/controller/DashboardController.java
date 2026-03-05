@@ -2,6 +2,7 @@ package com.rev.app.Controller;
 
 import com.rev.app.entity.PasswordEntry;
 import com.rev.app.entity.User;
+import com.rev.app.service.IPasswordGeneratorService;
 import com.rev.app.service.IPasswordVaultService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import java.util.List;
 public class DashboardController {
 
     private final IPasswordVaultService vaultService;
+    private final IPasswordGeneratorService generatorService;
 
     @GetMapping("/dashboard")
     public String showDashboard(HttpSession session, Model model, @RequestParam(required = false) String search) {
@@ -33,11 +35,26 @@ public class DashboardController {
             entries = vaultService.getAllPasswords(user);
         }
 
+        // Ensure strength is calculated for all entries (for legacy data)
+        for (PasswordEntry entry : entries) {
+            if (entry.getStrength() == null || entry.getStrength().isEmpty()) {
+                String plain = vaultService.decryptPassword(entry.getEncryptedPassword());
+                entry.setStrength(generatorService.calculatePasswordStrength(plain));
+                // Note: We don't save back to DB here to keep dashboard load fast,
+                // but the UI will show the correct value.
+            }
+        }
+
         model.addAttribute("entries", entries);
         model.addAttribute("totalCount", entries.size());
-        
+
         long favCount = entries.stream().filter(PasswordEntry::isFavorite).count();
         model.addAttribute("favoriteCount", favCount);
+
+        long weakCount = entries.stream()
+                .filter(e -> "Weak".equalsIgnoreCase(e.getStrength()))
+                .count();
+        model.addAttribute("weakCount", weakCount);
 
         return "dashboard";
     }

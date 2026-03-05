@@ -2,6 +2,7 @@ package com.rev.app.rest;
 
 import com.rev.app.dto.LoginDto;
 import com.rev.app.dto.UserRegistrationDto;
+import com.rev.app.entity.SecurityQuestion;
 import com.rev.app.entity.User;
 import com.rev.app.exception.InvalidCredentialsException;
 import com.rev.app.exception.UserAlreadyExistsException;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -48,14 +50,23 @@ public class AuthRestController {
     public ResponseEntity<?> loginUser(@RequestBody LoginDto loginDto, HttpSession session) {
         try {
             User user = userService.loginUser(loginDto);
+
+            if (user.isTwoFactorEnabled()) {
+                session.setAttribute("tempUser", user);
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "2FA_REQUIRED");
+                response.put("username", user.getUsername());
+                return ResponseEntity.ok(response);
+            }
+
             session.setAttribute("loggedInUser", user);
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Login successful");
             response.put("username", user.getUsername());
             response.put("sessionId", session.getId());
             return ResponseEntity.ok(response);
-            
+
         } catch (InvalidCredentialsException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -77,14 +88,14 @@ public class AuthRestController {
 
             // Generate 6-digit OTP
             String otp = String.format("%06d", new java.util.Random().nextInt(999999));
-            
+
             // Save OTP
             com.rev.app.entity.OtpVerification otpVerification = com.rev.app.entity.OtpVerification.builder()
                     .email(email)
                     .otp(otp)
                     .expiryTime(java.time.LocalDateTime.now().plusMinutes(10))
                     .build();
-            
+
             otpRepository.deleteByEmail(email); // Remove any old OTPs for this email
             otpRepository.save(otpVerification);
 
@@ -138,9 +149,8 @@ public class AuthRestController {
 
         var answers = userSecurityAnswerRepository.findByUser(user);
         var questions = answers.stream().map(a -> Map.of(
-            "id", a.getSecurityQuestion().getId(),
-            "question", a.getSecurityQuestion().getQuestionText()
-        )).toList();
+                "id", a.getSecurityQuestion().getId(),
+                "question", a.getSecurityQuestion().getQuestionText())).toList();
 
         return ResponseEntity.ok(questions);
     }
@@ -160,19 +170,16 @@ public class AuthRestController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "User not found"));
         }
 
-        var storedAnswers = userSecurityAnswerRepository.findByUser(user);
-        
-        for (var stored : storedAnswers) {
-            String qId = String.valueOf(stored.getSecurityQuestion().getId());
-            String providedAnswer = providedAnswers.get(qId);
-            
-            if (providedAnswer == null || !stored.getAnswerHash().equals(userService.hashPassword(providedAnswer.toLowerCase()))) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Incorrect answer for one or more questions"));
-            }
-        }
+        List<Long> questionIds = providedAnswers.keySet().stream().map(Long::parseLong).toList();
+        List<String> answers = providedAnswers.values().stream().toList();
 
-        session.setAttribute("securityVerified", true);
-        return ResponseEntity.ok(Map.of("message", "Security questions verified successfully"));
+        if (userService.verifySecurityAnswers(email, questionIds, answers)) {
+            session.setAttribute("securityVerified", true);
+            return ResponseEntity.ok(Map.of("message", "Security questions verified successfully"));
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Incorrect answer for one or more questions"));
+        }
     }
 
     @PostMapping("/reset-password")
@@ -188,11 +195,13 @@ public class AuthRestController {
         }
 
         if (verifiedEmail == null || !verifiedEmail.equals(email)) {
-             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Email not verified or session expired"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Email not verified or session expired"));
         }
 
         if (securityVerified == null || !securityVerified) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Security questions not verified"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Security questions not verified"));
         }
 
         if (!newPassword.equals(confirmPassword)) {
