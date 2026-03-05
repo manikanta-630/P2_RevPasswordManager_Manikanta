@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::section})}">
+
+<body>
+    <section>
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white text-center py-3">
+                        <h4 class="mb-0"><i class="fa-solid fa-user-plus me-2"></i>Register for RevPassword</h4>
+                    </div>
+                    <div class="card-body p-4">
+
+                        <div th:if="${error}" class="alert alert-danger" role="alert">
+                            <span th:text="${error}"></span>
+                        </div>
+
+                        <form th:action="@{/register}" method="post">
+                            <div class="mb-3">
+                                <label class="form-label">Username</label>
+                                <input type="text" name="username" class="form-control" required
+                                    placeholder="Choose a username">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" name="email" class="form-control" required
+                                    placeholder="Enter your email">
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col">
+                                    <label class="form-label">Master Password</label>
+                                    <input type="password" id="masterPassword" name="masterPassword"
+                                        class="form-control" required>
+                                    <div id="passwordHelp" class="mt-2 small">
+                                        <div id="len" class="text-danger"><i class="fa-solid fa-circle-xmark me-1"></i>
+                                            At least 8 characters</div>
+                                        <div id="upper" class="text-danger"><i
+                                                class="fa-solid fa-circle-xmark me-1"></i> At least one uppercase letter
+                                        </div>
+                                        <div id="lower" class="text-danger"><i
+                                                class="fa-solid fa-circle-xmark me-1"></i> At least one lowercase letter
+                                        </div>
+                                        <div id="num" class="text-danger"><i class="fa-solid fa-circle-xmark me-1"></i>
+                                            At least one number</div>
+                                        <div id="spec" class="text-danger"><i class="fa-solid fa-circle-xmark me-1"></i>
+                                            At least one special character</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">Confirm Password</label>
+                                    <input type="password" id="confirmPassword" name="confirmPassword"
+                                        class="form-control" required>
+                                    <div id="match" class="mt-2 small text-danger d-none"><i
+                                            class="fa-solid fa-circle-exmark me-1"></i> Passwords do not match</div>
+                                </div>
+                            </div>
+
+                            <hr>
+                            <h6 class="mb-3">Security Questions (Choose 3)</h6>
+
+                            <div th:each="i : ${#numbers.sequence(0, 2)}" class="mb-3 bg-light p-3 rounded border">
+                                <label class="form-label fw-bold">Question <span th:text="${i + 1}"></span></label>
+                                <select name="securityQuestionIds" class="form-select mb-2" required>
+                                    <option value="" disabled selected>Select a question...</option>
+                                    <option th:each="q : ${questions}" th:value="${q.id}" th:text="${q.questionText}">
+                                    </option>
+                                </select>
+                                <input type="text" name="securityAnswers" class="form-control" required
+                                    placeholder="Your answer">
+                            </div>
+
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" id="submitBtn" class="btn btn-success btn-lg" disabled>Create
+                                    Account</button>
+                            </div>
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <p>Already have an account? <a href="/login">Login here</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const password = document.getElementById('masterPassword');
+            const confirm = document.getElementById('confirmPassword');
+            const submitBtn = document.getElementById('submitBtn');
+
+            const requirements = {
+                len: { re: /.{8,}/, el: document.getElementById('len') },
+                upper: { re: /[A-Z]/, el: document.getElementById('upper') },
+                lower: { re: /[a-z]/, el: document.getElementById('lower') },
+                num: { re: /[0-9]/, el: document.getElementById('num') },
+                spec: { re: /[^A-Za-z0-9]/, el: document.getElementById('spec') }
+            };
+
+            const matchEl = document.getElementById('match');
+
+            function validate() {
+                let allValid = true;
+                const val = password.value;
+
+                for (const key in requirements) {
+                    const req = requirements[key];
+                    const isValid = req.re.test(val);
+                    if (isValid) {
+                        req.el.classList.remove('text-danger');
+                        req.el.classList.add('text-success');
+                        req.el.querySelector('i').classList.remove('fa-circle-xmark');
+                        req.el.querySelector('i').classList.add('fa-circle-check');
+                    } else {
+                        req.el.classList.remove('text-success');
+                        req.el.classList.add('text-danger');
+                        req.el.querySelector('i').classList.remove('fa-circle-check');
+                        req.el.querySelector('i').classList.add('fa-circle-xmark');
+                        allValid = false;
+                    }
+                }
+
+                const passwordsMatch = val === confirm.value && val !== '';
+                if (confirm.value !== '') {
+                    matchEl.classList.toggle('d-none', passwordsMatch);
+                } else {
+                    matchEl.classList.add('d-none');
+                }
+
+                submitBtn.disabled = !(allValid && passwordsMatch);
+            }
+
+            password.addEventListener('input', validate);
+            confirm.addEventListener('input', validate);
+
+            // Security Questions filtering logic
+            const questionSelects = document.querySelectorAll('select[name="securityQuestionIds"]');
+
+            function filterQuestions() {
+                const selectedValues = Array.from(questionSelects)
+                    .map(select => select.value)
+                    .filter(value => value !== "");
+
+                questionSelects.forEach(select => {
+                    const currentValue = select.value;
+                    const options = select.querySelectorAll('option:not([disabled])');
+
+                    options.forEach(option => {
+                        if (selectedValues.includes(option.value) && option.value !== currentValue) {
+                            option.classList.add('d-none');
+                            option.disabled = true;
+                        } else {
+                            option.classList.remove('d-none');
+                            option.disabled = false;
+                        }
+                    });
+                });
+            }
+
+            questionSelects.forEach(select => {
+                select.addEventListener('change', filterQuestions);
+            });
+        </script>
+    </section>
+</body>
+
+</html>

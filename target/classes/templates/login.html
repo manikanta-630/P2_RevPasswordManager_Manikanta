@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::section})}">
+
+<body>
+    <section>
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-5">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white text-center py-3">
+                        <h4 class="mb-0"><i class="fa-solid fa-lock me-2"></i>Login to RevPassword</h4>
+                    </div>
+                    <div class="card-body p-4">
+
+                        <div th:if="${error}" class="alert alert-danger" role="alert">
+                            <span th:text="${error}"></span>
+                        </div>
+                        <div th:if="${param.registered}" class="alert alert-success" role="alert">
+                            Registration successful! Please login.
+                        </div>
+                        <div th:if="${param.logout}" class="alert alert-info" role="alert">
+                            You have been successfully logged out.
+                        </div>
+                        <div th:if="${param.reset}" class="alert alert-success" role="alert">
+                            Password reset successful! Please login with your new master password.
+                        </div>
+
+                        <form th:action="@{/login}" method="post" autocomplete="off">
+                            <div class="mb-3">
+                                <label class="form-label">Username or Email</label>
+                                <input type="text" name="usernameOrEmail" class="form-control" required
+                                    placeholder="Enter username or email" autocomplete="off">
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label">Master Password</label>
+                                <div class="input-group">
+                                    <input type="password" id="masterPassword" name="masterPassword"
+                                        class="form-control" required placeholder="Enter master password"
+                                        autocomplete="new-password">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                        <i class="fa-regular fa-eye" id="eyeIcon"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg">Login</button>
+                            </div>
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <p>Don't have an account? <a href="/register">Register here</a></p>
+                            <a href="/forgot-password" class="text-muted small">Forgot Master Password?</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Explicitly clear login form on load
+            document.addEventListener("DOMContentLoaded", function () {
+                const usernameField = document.querySelector('input[name="usernameOrEmail"]');
+                const passwordField = document.getElementById('masterPassword');
+                if (usernameField) usernameField.value = '';
+                if (passwordField) passwordField.value = '';
+            });
+
+            function togglePassword() {
+                var pwd = document.getElementById("masterPassword");
+                var icon = document.getElementById("eyeIcon");
+                if (pwd.type === "password") {
+                    pwd.type = "text";
+                    icon.classList.remove("fa-eye");
+                    icon.classList.add("fa-eye-slash");
+                } else {
+                    pwd.type = "password";
+                    icon.classList.remove("fa-eye-slash");
+                    icon.classList.add("fa-eye");
+                }
+            }
+        </script>
+    </section>
+</body>
+
+</html>

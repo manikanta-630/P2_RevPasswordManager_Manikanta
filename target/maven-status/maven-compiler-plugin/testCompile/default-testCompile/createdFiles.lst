@@ -1,0 +1,3 @@
+com\rev\app\RevPasswordP2ApplicationTests.class
+com\rev\app\service\UserServiceImplTest.class
+com\rev\app\service\PasswordGeneratorServiceImplTest.class
